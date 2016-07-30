@@ -6,12 +6,17 @@ Wrap Feathers services so they work transparently and perfectly with Redux.
 [![Coverage Status](https://coveralls.io/repos/github/eddyystop/feathers-reduxify-services/badge.svg?branch=master)](https://coveralls.io/github/eddyystop/feathers-reduxify-services?branch=master)
 [![Code Climate](https://codeclimate.com/github/eddyystop/feathers-reduxify-services.png)](https://codeclimate.com/github/eddyystop/feathers-reduxify-services)
 
-> Wrap Feathers' services exposing Redux-compatible async action creators and reducers.
+Tests remain to be done but full working example is included.
 
-Tests remain to do.
+> Integrate Feathers and Redux
 
-[From super-cool 'DevTools for Redux' with actions history, undo and replay.]
-(https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd?utm_source=chrome-app-launcher-info-dialog)
+```javascript
+store.dispatch(feathersServices.messages.get('557XxUL8PalGMgOo'));
+store.dispatch(feathersServices.messages.find());
+store.dispatch(feathersServices.messages.create({ text: 'Shiver me timbers!' }));
+```
+
+[](https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd?utm_source=chrome-app-launcher-info-dialog)
 ![](./docs/screen-shot.jpg)
 
 ## Code Example
@@ -23,10 +28,10 @@ import reduxifyServices, { getServicesStatus } from 'feathers-reduxify-services'
 ...
 // Create feathers-client app
 const feathersApp = feathers().configure(feathers.socketio(socket)) ...
-// Expose Redux action creators and reducers for Feathers' services
+// Expose Redux action creators and reducers for any services
 const services = reduxifyServices(feathersApp, ['users', 'messages']);
 ...
-// Create store
+// Create Redux store
 const store = createStore(
   // Reducers
   users: services.users.reducer,
@@ -47,8 +52,8 @@ Dispatch Redux actions on Feathers' real time service events.
 const messages = feathersApp.service('messages');
 messages.on('created', data => {
   store.dispatch(
-    // Create a thunk action. The function will be invoked by Redux middleware.
-    services.messages.on('created', data, (event, data, dispatch, getState) => {
+    // Create a thunk action to invoke the function.
+    services.messages.on('created', data, (eventName, data, dispatch, getState) => {
       console.log('--created event', data);
     })
   );

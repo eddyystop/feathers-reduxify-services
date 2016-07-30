@@ -1,19 +1,64 @@
-## ?????1
-?????
+## feathers-reduxify-services
 
-[![Build Status](https://travis-ci.org/eddyystop/?????1.svg?branch=master)](https://travis-ci.org/eddyystop/?????1)
-[![Coverage Status](https://coveralls.io/repos/github/eddyystop/?????1/badge.svg?branch=master)](https://coveralls.io/github/eddyystop/?????1?branch=master)
-[![Code Climate](https://codeclimate.com/github/eddyystop/?????1.png)](https://codeclimate.com/github/eddyystop/?????1)
+Wrap Feathers services so they work transparently and perfectly with Redux.
 
-> ?????
+[![Build Status](https://travis-ci.org/eddyystop/feathers-reduxify-services.svg?branch=master)](https://travis-ci.org/eddyystop/feathers-reduxify-services)
+[![Coverage Status](https://coveralls.io/repos/github/eddyystop/feathers-reduxify-services/badge.svg?branch=master)](https://coveralls.io/github/eddyystop/feathers-reduxify-services?branch=master)
+[![Code Climate](https://codeclimate.com/github/eddyystop/feathers-reduxify-services.png)](https://codeclimate.com/github/eddyystop/feathers-reduxify-services)
 
-Work in progress.
+> Wrap Feathers' services exposing Redux-compatible async action creators and reducers.
+
+Tests remain to do.
+
+[From super-cool 'DevTools for Redux' with actions history, undo and replay.]
+(https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd?utm_source=chrome-app-launcher-info-dialog)
+![](./docs/screen-shot.jpg)
+
 ## Code Example
 
-To do.
+Expose Redux action creators and reducers for Feathers services. Then use them like normal.
 
 ```javascript
-const ?????1 = require('?????1');
+import reduxifyServices, { getServicesStatus } from 'feathers-reduxify-services';
+...
+// Create feathers-client app
+const feathersApp = feathers().configure(feathers.socketio(socket)) ...
+// Expose Redux action creators and reducers for Feathers' services
+const services = reduxifyServices(feathersApp, ['users', 'messages']);
+...
+// Create store
+const store = createStore(
+  // Reducers
+  users: services.users.reducer,
+  messages: services.messages.reducer,
+  // Required middleware
+  applyMiddleware(reduxThunk, reduxPromiseMiddleware())
+)
+...
+// Invoke Feathers' services using Redux.
+store.dispatch(services.messages.create({ text: 'Shiver me timbers!' }));
+store.dispatch(services.messages.find());
+store.dispatch(services.messages.get('557XxUL8PalGMgOo'));
+```
+
+Dispatch Redux actions on Feathers' real time service events.
+
+```javascript
+const messages = feathersApp.service('messages');
+messages.on('created', data => {
+  store.dispatch(
+    // Create a thunk action. The function will be invoked by Redux middleware.
+    services.messages.on('created', data, (event, data, dispatch, getState) => {
+      console.log('--created event', data);
+    })
+  );
+});
+```
+
+Keep the user informed of service activity.
+
+```javascript
+const status = getServicesStatus(servicesRootState, ['users', 'messages']).message;
 ```
 
 ## Motivation
@@ -24,12 +69,11 @@ To do.
 
 Install [Nodejs](https://nodejs.org/en/).
 
-Run `npm install ?????1 --save` in your project folder.
+Run `npm install feathers-reduxify-services --save` in your project folder.
 
 You can then require the utilities.
 
-????? `/src` on GitHub contains the ES6 source.
-????? It will run on Node 6+ without transpiling.
+`/src` on GitHub contains the ES6 source.
 
 ## Running the Working Example
 
@@ -37,14 +81,14 @@ To do.
 
 ## API Reference
 
-????? See Code Example.
-????? Each module is fully documented.
+See Code Example.
+Each module is fully documented.
 
 ## Tests
 
 `npm test` to run tests.
 
-????? `npm run cover` to run tests plus coverage.
+`npm run cover` to run tests plus coverage.
 
 ## Contributors
 

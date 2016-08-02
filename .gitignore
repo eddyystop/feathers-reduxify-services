@@ -2,7 +2,7 @@
 ### Specific to project ##########
 
 # build
-lib/
+# lib/
 # checklists
 docs-secure/
 # Authentication information

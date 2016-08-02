@@ -4,6 +4,7 @@
 # Results of builds
 lib
 dist
+example/public/dist/
 
 ### Standard .gitignore ##########
 

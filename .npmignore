@@ -2,7 +2,7 @@
 # npm modules
 node_modules/
 # ES6 source
-src/
+# src/
 # example
 example/
 # coverage report

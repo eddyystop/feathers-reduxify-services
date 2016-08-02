@@ -5,8 +5,6 @@ Wrap Feathers services so they work transparently and perfectly with Redux.
 [![Build Status](https://travis-ci.org/eddyystop/feathers-reduxify-services.svg?branch=master)](https://travis-ci.org/eddyystop/feathers-reduxify-services)
 [![Coverage Status](https://coveralls.io/repos/github/eddyystop/feathers-reduxify-services/badge.svg?branch=master)](https://coveralls.io/github/eddyystop/feathers-reduxify-services?branch=master)
 
-Tests remain to be done but full working example is included.
-
 > Integrate Feathers and Redux with one line of code.
 
 ```javascript

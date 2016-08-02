@@ -1,6 +1,6 @@
 
-var webpack = require('webpack')
-var path = require('path')
+const webpack = require('webpack'); // eslint-disable-line import/no-unresolved
+const path = require('path');
 
 module.exports = {
   context: path.join(__dirname, './client'),
@@ -15,17 +15,17 @@ module.exports = {
         test: /\.(js|jsx)$/,
         exclude: /node_modules/,
         loaders: [
-          'babel-loader'
-        ]
+          'babel-loader',
+        ],
       },
     ],
   },
   resolve: {
-    extensions: ['', '.js', '.jsx']
+    extensions: ['', '.js', '.jsx'],
   },
   plugins: [
     new webpack.DefinePlugin({
-      'process.env': { NODE_ENV: JSON.stringify(process.env.NODE_ENV || 'development') }
-    })
+      'process.env': { NODE_ENV: JSON.stringify(process.env.NODE_ENV || 'development') },
+    }),
   ],
 };

@@ -3,6 +3,7 @@
 
 # Results of builds
 lib
+dist
 
 ### Standard .gitignore ##########
 

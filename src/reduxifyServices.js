@@ -119,7 +119,6 @@ const reduxifyService = (app, serviceName, options = {}) => {
   const UPDATE = `${SERVICE_NAME}UPDATE`;
   const PATCH = `${SERVICE_NAME}PATCH`;
   const REMOVE = `${SERVICE_NAME}REMOVE`;
-  const EVENT = `${SERVICE_NAME}EVENT`;
 
   return {
     // ACTION CREATORS
@@ -151,14 +150,15 @@ const reduxifyService = (app, serviceName, options = {}) => {
         [opts.data]: null,
         [opts.queryResult]: null,
       }
-    )
+    ),
   };
 };
 
 // Convenience method
 
 export default (app, serviceNames, options) => {
-  serviceNames = Array.isArray(serviceNames) ? serviceNames : [serviceNames];
+  serviceNames = // eslint-disable-line no-param-reassign
+    Array.isArray(serviceNames) ? serviceNames : [serviceNames];
   const services = {};
 
   serviceNames.forEach(name => {
@@ -184,33 +184,41 @@ export default (app, serviceNames, options) => {
  */
 
 export const getServicesStatus = (servicesState, serviceNames) => {
-  serviceNames = Array.isArray(serviceNames) ? serviceNames : [serviceNames];
-  var status = {
+  var status = { // eslint-disable-line no-var
     message: '',
     className: '',
     serviceName: '',
   };
+  serviceNames = // eslint-disable-line no-param-reassign
+    Array.isArray(serviceNames) ? serviceNames : [serviceNames];
 
-  serviceNames.forEach(name => {
+
+  const done = serviceNames.some(name => {
     const state = servicesState[name];
 
     if (state.isError) {
       status.message = state.isError.message;
       status.className = state.isError.className;
       status.serviceName = name;
-      return status;
+      return true;
     }
+
+    return false;
   });
 
-  serviceNames.forEach(name => {
+  if (done) { return status; }
+
+  serviceNames.some(name => {
     const state = servicesState[name];
 
     if (state.isLoading || state.isSaving) {
       status.message = `${name} is ${state.isLoading ? 'loading' : 'saving'}`;
       status.className = state.isLoading ? 'isLoading' : 'isSaving';
       status.serviceName = name;
-      return status;
+      return true;
     }
+
+    return false;
   });
 
   return status;

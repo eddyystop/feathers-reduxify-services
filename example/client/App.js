@@ -5,14 +5,21 @@ import { services, getServicesStatus } from './feathers';
 
 // import logo from './logo.svg';
 // import './App.css';
-var text = 'initial value';
-var id = '';
+var text = 'initial value'; // eslint-disable-line no-var
+var id = ''; // eslint-disable-line no-var
 
 class App extends Component {
+  static propTypes = {
+    servicesState: PropTypes.object.isRequired,
+    onCreate: PropTypes.func.isRequired,
+    onGet: PropTypes.func.isRequired,
+    onFind: PropTypes.func.isRequired,
+  };
+
   getStatusMessage() {
     const status = getServicesStatus(this.props.servicesState, ['users', 'messages']).message;
-    return status ? status : ' "It\'s ... ah ... it\'s green, Captain."';
-  };
+    return status && ' "It\'s ... ah ... it\'s green, Captain."';
+  }
 
   render() {
     const { messages } = this.props.servicesState;

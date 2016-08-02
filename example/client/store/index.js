@@ -1,5 +1,5 @@
 
-import { createStore, applyMiddleware } from 'redux'
+import { createStore, applyMiddleware } from 'redux';
 import rootReducer from '../reducers';
 import middlewares from '../middleware';
 
@@ -17,4 +17,4 @@ export default function configureStore(initialState) {
   const createStoreWithMiddlewares = applyMiddleware(...middlewares)(createStoreWithDevTools);
 
   return createStoreWithMiddlewares(rootReducer, initialState);
-};
+}

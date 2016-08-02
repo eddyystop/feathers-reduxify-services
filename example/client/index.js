@@ -3,7 +3,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { Provider } from 'react-redux';
 import configureStore from './store';
-import feathersApp, { services } from './feathers';
+import feathersApp, { services } from './feathers'; // eslint-disable-line no-unused-vars
 import App from './App';
 
 const store = configureStore();

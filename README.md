@@ -8,12 +8,14 @@ Wrap Feathers services so they work transparently and perfectly with Redux.
 
 Tests remain to be done but full working example is included.
 
-> Integrate Feathers and Redux
+> Integrate Feathers and Redux with one line of code.
 
 ```javascript
-store.dispatch(feathersServices.messages.get('557XxUL8PalGMgOo'));
-store.dispatch(feathersServices.messages.find());
-store.dispatch(feathersServices.messages.create({ text: 'Shiver me timbers!' }));
+const services = reduxifyServices(feathersApp, ['users', 'messages']);
+
+store.dispatch(services.messages.get('557XxUL8PalGMgOo'));
+store.dispatch(services.messages.find());
+store.dispatch(services.messages.create({ text: 'Shiver me timbers!' }));
 ```
 
 [](https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd?utm_source=chrome-app-launcher-info-dialog)
@@ -21,14 +23,12 @@ store.dispatch(feathersServices.messages.create({ text: 'Shiver me timbers!' }))
 
 ## Code Example
 
-Expose Redux action creators and reducers for Feathers services. Then use them like normal.
+Expose action creators and reducers for Feathers services. Then use them like normal Redux.
 
 ```javascript
 import reduxifyServices, { getServicesStatus } from 'feathers-reduxify-services';
-...
-// Create feathers-client app
 const feathersApp = feathers().configure(feathers.socketio(socket)) ...
-// Expose Redux action creators and reducers for any services
+// Expose Redux action creators and reducers for Feathers' services
 const services = reduxifyServices(feathersApp, ['users', 'messages']);
 ...
 // Create Redux store
@@ -40,10 +40,10 @@ const store = createStore(
   applyMiddleware(reduxThunk, reduxPromiseMiddleware())
 )
 ...
-// Invoke Feathers' services using Redux.
-store.dispatch(services.messages.create({ text: 'Shiver me timbers!' }));
-store.dispatch(services.messages.find());
+// Invoke Feathers' services using standard Redux.
 store.dispatch(services.messages.get('557XxUL8PalGMgOo'));
+store.dispatch(services.messages.find());
+store.dispatch(services.messages.create({ text: 'Shiver me timbers!' }));
 ```
 
 Dispatch Redux actions on Feathers' real time service events.
@@ -80,7 +80,7 @@ You can then require the utilities.
 
 `/src` on GitHub contains the ES6 source.
 
-## Running the Working Example
+## Running the Example
 
 To do.
 

@@ -4,7 +4,6 @@ Wrap Feathers services so they work transparently and perfectly with Redux.
 
 [![Build Status](https://travis-ci.org/eddyystop/feathers-reduxify-services.svg?branch=master)](https://travis-ci.org/eddyystop/feathers-reduxify-services)
 [![Coverage Status](https://coveralls.io/repos/github/eddyystop/feathers-reduxify-services/badge.svg?branch=master)](https://coveralls.io/github/eddyystop/feathers-reduxify-services?branch=master)
-[![Code Climate](https://codeclimate.com/github/eddyystop/feathers-reduxify-services.png)](https://codeclimate.com/github/eddyystop/feathers-reduxify-services)
 
 Tests remain to be done but full working example is included.
 

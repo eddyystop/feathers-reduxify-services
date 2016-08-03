@@ -1,6 +1,6 @@
 {
   "name": "feathers-reduxify-services",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Wrap Feathers services so they work transparently and perfectly with Redux.",
   "main": "lib/",
   "directories": {

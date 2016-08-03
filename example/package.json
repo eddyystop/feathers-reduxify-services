@@ -39,6 +39,7 @@
     "feathers-rest": "^1.4.3",
     "feathers-socketio": "^1.4.1",
     "nedb": "^1.8.0",
+    "object.assign": "^4.0.4",
     "passport": "^0.3.2",
     "react": "^15.0.1",
     "react-dom": "^15.0.1",

@@ -3,8 +3,8 @@
 
 const assert = require('chai').assert;
 const feathersFakes = require('feathers-tests-fake-app-users');
-const reduxifyServices = require('../lib/reduxifyServices').default;
-const getServicesStatus = require('../lib/reduxifyServices').getServicesStatus;
+const reduxifyServices = require('../lib').default;
+const getServicesStatus = require('../lib').getServicesStatus;
 
 const usersDb = [];
 const messagesDb = [];

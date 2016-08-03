@@ -3,7 +3,7 @@
 
 const assert = require('chai').assert;
 const feathersFakes = require('feathers-tests-fake-app-users');
-const reduxifyServices = require('../lib/reduxifyServices').default;
+const reduxifyServices = require('../lib').default;
 
 const usersDb = [
   { _id: 'a', email: 'a', isVerified: true, verifyToken: null, verifyExpires: null },

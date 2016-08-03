@@ -2,7 +2,7 @@
 /* global io */
 
 import feathers from 'feathers-client';
-import reduxifyServices, { getServicesStatus as getStatus } from '../../../lib/reduxifyServices';
+import reduxifyServices, { getServicesStatus as getStatus } from '../../../lib';
 
 const socket = io();
 

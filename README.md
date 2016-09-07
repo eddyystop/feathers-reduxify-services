@@ -8,35 +8,53 @@ Wrap Feathers services so they work transparently and perfectly with Redux.
 > Integrate Feathers and Redux with one line of code.
 
 ```javascript
-const services = reduxifyServices(feathersApp, ['users', 'messages']);
+/* on server */
+app.use('/users', ...);
+app.use('/messages', ...);
 
+/* on client */
+const app = feathers().configure(feathers.socketio(socket)).configure(feathers.hooks());
+
+// reduxify Feathers' services
+const services = reduxifyServices(app, ['users', 'messages']); // the 1 line
+
+// hook up Redux reducers
+export default combineReducers({
+  users: services.users.reducer,
+  messages: services.messages.reducer,
+});
+
+// Feathers is now 100% compatible with Redux
 store.dispatch(services.messages.get('557XxUL8PalGMgOo'));
 store.dispatch(services.messages.find());
 store.dispatch(services.messages.create({ text: 'Shiver me timbers!' }));
 ```
 
+**_Simple, huh._**
+
 [](https://chrome.google.com/webstore/detail/redux-devtools/lmhkpmbekcpmknklioeibfkpmmfibljd?utm_source=chrome-app-launcher-info-dialog)
 ![](./docs/screen-shot.jpg)
 
-## Code Example
+## <a name="codeExample"></a> Code Example
 
 Expose action creators and reducers for Feathers services. Then use them like normal Redux.
 
 ```javascript
+import { applyMiddleware, combineReducers, createStore } from 'redux';
 import reduxifyServices, { getServicesStatus } from 'feathers-reduxify-services';
 const feathersApp = feathers().configure(feathers.socketio(socket)) ...
+
 // Expose Redux action creators and reducers for Feathers' services
 const services = reduxifyServices(feathersApp, ['users', 'messages']);
-...
-// Create Redux store
-const store = createStore(
-  // Reducers
-  users: services.users.reducer,
-  messages: services.messages.reducer,
-  // Required middleware
-  applyMiddleware(reduxThunk, reduxPromiseMiddleware())
-)
-...
+
+// Typical Redux store creation, crammed together
+const store = applyMiddleware(
+  reduxThunk, reduxPromiseMiddleware() // middleware needed
+)(createStore)(combineReducers({
+  users: services.users.reducer, // include reducers for Feathers' services
+  messages: services.messages.reducer
+}));
+
 // Invoke Feathers' services using standard Redux.
 store.dispatch(services.messages.get('557XxUL8PalGMgOo'));
 store.dispatch(services.messages.find());
@@ -47,6 +65,7 @@ Dispatch Redux actions on Feathers' real time service events.
 
 ```javascript
 const messages = feathersApp.service('messages');
+
 messages.on('created', data => {
   store.dispatch(
     // Create a thunk action to invoke the function.
@@ -65,7 +84,11 @@ const status = getServicesStatus(servicesRootState, ['users', 'messages']).messa
 
 ## Motivation
 
-To do.
+Feathers is a great real-time client-server framework.
+Redux is a great state container for the front-end.
+React is a great declarative UI.
+
+This repo let's all 3 work together easily.
 
 ## Installation
 
@@ -79,18 +102,50 @@ You can then require the utilities.
 
 ## Running the Example
 
-To do.
+`cd example`
+
+`npm install`
+
+`npm run build` bundles the client code into `public/dist/bundle.js`.
+
+`npm start`
+
+The NeDb database `data/messages.db` has 6 items in it, with text `message 1` to `message 6`.
+
+Point your browser at `localhost:3030/index.html`
+
+The client, on startup, adds a `Hello` item to `messages`, `find`'s and displays 5 items,
+and tries to `get` a non-existent item.
+
+You can `create`, `get` and `find` items using the UI.
+
+`client/feathers/index.js` reduxifies the `users` and `messages` feathers services
+and exports their action creators and reducer as `{ services }`.
+`client/reducers/index.js` hooks up the reducers for the reduxified services.
+`client/index.js` performs the initial `create`, `find` and `get`.
+`client/App.js::mapDispatchToProps` dispatches UI events.
+
+**_Simple, huh._**
+
 
 ## API Reference
 
 See Code Example.
+See `/example` working example.
 Each module is fully documented.
+
+This repo does the heavy redux lifting in
+[feathers-starter-react-redux-login-roles](https://github.com/eddyystop/feathers-starter-react-redux-login-roles).
 
 ## Tests
 
 `npm test` to run tests.
 
 `npm run cover` to run tests plus coverage.
+
+## <a name="changeLog"></a> Change Log
+
+[List of notable changes.](./CHANGELOG.md)
 
 ## Contributors
 

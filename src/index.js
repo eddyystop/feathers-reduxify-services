@@ -6,7 +6,7 @@ import makeDebug from 'debug';
  * Build a Redux compatible wrapper around a Feathers service.
  *
  * Instead of using a feathers-client service directly
- *     messages.create({ name: 'John' }, (err, data) => {...});
+ *     app.services('messages').create({ name: 'John' }, (err, data) => {...});
  * you first wrap the feathers service to expose Redux action creators and a reducer
  *     messages = reduxifyService(app, 'messages');
  * You can thereafter use the service in a standard Redux manner
@@ -14,27 +14,48 @@ import makeDebug from 'debug';
  * with async action creators being dispatched to a reducer which manages state.
  *
  * @param {Object} app the configured Feathers app, e.g. require('feathers-client')().configure(...)
- * @param {String} serviceName is Feathers' name for the service.
+ * @param {String} route is the Feathers' route for the service.
+ * @param {String} name is the serviceName by which the service is known on client. Default route.
  * @param {Object} options
  * @returns {{find: *, get: *, create: *, update: *, patch: *, remove: *, on: *, reducer: *}}
  *
- * Action creators for methods are returned as { find, get, create, update, patch, remove }.
+ * You will usually use on the client
+ *      const users = reduxifyService(app, 'users');
+ * However you may sometimes have awkward REST paths on the server like
+ *      app.use('app.use('/verifyReset/:action/:value', ...);
+ * You are then best of to use on the client
+ *      const buildings = reduxifyService(app, '/verifyReset/:action/:value', 'verifyReset');
+ * since you can thereafter use
+ *      store.dispatch(verifyReset.create(...));
+ *
+ * Action creators for service calls are returned as { find, get, create, update, patch, remove }.
  * They expect the same parameters as their Feathers service methods, e.g. (id, data, params).
  *
- * The reducer { reducer } expects action types 'SERVICES_${SERVICE_NAME}_${METHOD}_PENDING',
- * ...FULFILLED and ...REJECTED. SERVICE_NAME is serviceName in upper case; METHOD is FIND, GET, ...
+ * Should you wish to write additional action creators, the { reducer } export expects action types
+ *   'SERVICES_${SERVICE_NAME}_${METHOD}_PENDING', ...FULFILLED and ...REJECTED
+ * where SERVICE_NAME is serviceName in upper case; METHOD is FIND, GET, ...
  *
- * You can implement optimistic updates within ...PENDING, finalizing them in ...FULFILL.
+ * Pro tip: You can implement optimistic updates within ...PENDING, finalizing them in ...FULFILL.
  *
  * The reducer's JS state (not immutable) is {
- *   isError: String|null, isLoading: Boolean, isSaving: Boolean, isFinished: Boolean,
- *   data: Object|null, queryResult: Object|null
+ *   isError: String|null,
+ *   isLoading: Boolean,
+ *   isSaving: Boolean,
+ *   isFinished: Boolean,
+ *   data: Object|null,
+ *   queryResult: Object|null
  * }.
- * The find method stores Feathers' query payload in queryResult. Other methods store in data.
+ * The find service call stores Feathers' query payload in queryResult. Other methods store in data.
  *
- * isError is Feathers' error payload { message, name, code, className, errors |.
+ * isError is Feathers' error payload { message, name, code, className, errors }.
+ * If the feathers server response did not specify an error message, then the message property will
+ * be feathers default of 'Error'.
  *
- * Options may change the prop names and the reducer action type names.
+ * Options may change the state property names and the reducer action type names.
+ *
+ * Each service also gets a reset service call which re-initializes that service's state.
+ * This may be used, for example, to remove isError in order to no longer render error messages.
+ * store.dispatch(messages.reset(true)) will leave queryResult as is during initialization.
  *
  * An action creator for listening on service events is returned as { on } and could be used like:
  *   import feathersApp, { services } from './feathers';
@@ -45,7 +66,10 @@ import makeDebug from 'debug';
  *   ); });
  */
 
-const reduxifyService = (app, serviceName, options = {}) => {
+const reduxifyService = (app, route, name = route, options = {}) => {
+  const debug = makeDebug(`reducer:${name}`);
+  debug(`route ${route}`);
+
   const defaults = {
     isError: 'isError',
     isLoading: 'isLoading',
@@ -58,16 +82,17 @@ const reduxifyService = (app, serviceName, options = {}) => {
     REJECTED: 'REJECTED',
   };
   const opts = Object.assign({}, defaults, options);
-  const SERVICE_NAME = `SERVICES_${serviceName.toUpperCase()}_`;
-  const debug = makeDebug(`reducer:${serviceName}`);
+  const SERVICE_NAME = `SERVICES_${name.toUpperCase()}_`;
 
-  const service = app.service(serviceName);
+
+  const service = app.service(route);
   if (!service) {
-    debug(`redux: Feathers service '${serviceName} does not exist.`);
-    throw Error(`Feathers service '${serviceName} does not exist.`);
+    debug(`redux: Feathers service '${route} does not exist.`);
+    throw Error(`Feathers service '${route} does not exist.`);
   }
 
   const reducerForServiceMethod = (actionType, ifLoading, isFind) => ({
+    // promise has been started
     [`${actionType}_${opts.PENDING}`]: (state, action) => {
       debug(`redux:${actionType}_${opts.PENDING}`, action);
       return ({
@@ -77,11 +102,11 @@ const reduxifyService = (app, serviceName, options = {}) => {
         [opts.isSaving]: !ifLoading,
         [opts.isFinished]: false,
         [opts.data]: null,
-        [opts.queryResult]: null,
-
+        [opts.queryResult]: state[opts.queryResult] || null, //  leave previous to reduce redraw
       });
     },
 
+    // promise resolved
     [`${actionType}_${opts.FULFILLED}`]: (state, action) => {
       debug(`redux:${actionType}_${opts.FULFILLED}`, action);
       return {
@@ -91,10 +116,11 @@ const reduxifyService = (app, serviceName, options = {}) => {
         [opts.isSaving]: false,
         [opts.isFinished]: true,
         [opts.data]: !isFind ? action.payload : null,
-        [opts.queryResult]: isFind ? action.payload : null,
+        [opts.queryResult]: isFind ? action.payload : (state[opts.queryResult] || null),
       };
     },
 
+    // promise rejected
     [`${actionType}_${opts.REJECTED}`]: (state, action) => {
       debug(`redux:${actionType}_${opts.REJECTED}`, action);
       return {
@@ -104,9 +130,9 @@ const reduxifyService = (app, serviceName, options = {}) => {
         [opts.isError]: action.payload,
         [opts.isLoading]: false,
         [opts.isSaving]: false,
-        [opts.isFinished]: false,
+        [opts.isFinished]: true,
         [opts.data]: null,
-        [opts.queryResult]: null,
+        [opts.queryResult]: isFind ? null : (state[opts.queryResult] || null),
       };
     },
   });
@@ -119,16 +145,18 @@ const reduxifyService = (app, serviceName, options = {}) => {
   const UPDATE = `${SERVICE_NAME}UPDATE`;
   const PATCH = `${SERVICE_NAME}PATCH`;
   const REMOVE = `${SERVICE_NAME}REMOVE`;
+  const RESET = `${SERVICE_NAME}RESET`;
 
   return {
     // ACTION CREATORS
-
-    find: createAction(FIND, (p) => ({ promise: service.find(p) })),
+    // Note: action.payload in reducer will have the value of .data below
+    find: createAction(FIND, (p) => ({ promise: service.find(p), data: undefined })),
     get: createAction(GET, (id, p) => ({ promise: service.get(id, p) })),
     create: createAction(CREATE, (d, p) => ({ promise: service.create(d, p) })),
     update: createAction(UPDATE, (id, d, p) => ({ promise: service.update(id, d, p) })),
     patch: createAction(PATCH, (id, d, p) => ({ promise: service.patch(id, d, p) })),
     remove: createAction(REMOVE, (id, p) => ({ promise: service.remove(id, p) })),
+    reset: createAction(RESET),
     on: (event, data, fcn) => (dispatch, getState) => { fcn(event, data, dispatch, getState); },
 
     // REDUCER
@@ -140,7 +168,26 @@ const reduxifyService = (app, serviceName, options = {}) => {
         reducerForServiceMethod(CREATE, false),
         reducerForServiceMethod(UPDATE, false),
         reducerForServiceMethod(PATCH, false),
-        reducerForServiceMethod(REMOVE, false)
+        reducerForServiceMethod(REMOVE, false),
+
+        // reset status if no promise is pending
+        { [RESET]: (state, action) => {
+          debug(`redux:${RESET}`, action);
+
+          if (state[opts.isLoading] || state[opts.isSaving]) {
+            return state;
+          }
+
+          return {
+            ...state,
+            [opts.isError]: null,
+            [opts.isLoading]: false,
+            [opts.isSaving]: false,
+            [opts.isFinished]: false,
+            [opts.data]: null,
+            [opts.queryResult]: action.payload ? state[opts.queryResult] : null,
+          };
+        } }
       ),
       {
         [opts.isError]: null,
@@ -154,15 +201,40 @@ const reduxifyService = (app, serviceName, options = {}) => {
   };
 };
 
-// Convenience method
-
-export default (app, serviceNames, options) => {
-  serviceNames = // eslint-disable-line no-param-reassign
-    Array.isArray(serviceNames) ? serviceNames : [serviceNames];
+/**
+ * Convenience method to build wrappers for multiple services. You should this not reduxifyService.
+ *
+ * @param {Object} app - See reduxifyService
+ * @param {Object|Array|String} routeNameMap - The feathers services to reduxify. See below.
+ * @param {Object} options - See reduxifyService
+ * @returns {Object} Each services' action creators. See reduxifyService.
+ *
+ * If the feathers server has:
+ *   app.use('users', ...);
+ *   app.use('/buildings/:buildingid', ...);
+ * then you can do
+ *   services = reduxifyServices(app, { users: 'users', '/buildings/:buildingid': 'buildings' });
+ *   ...
+ *   store.dispatch(users.create(...));
+ *   store.dispatch(users.create(...));
+ *
+ * A routeNameMap of ['users', 'members'] is the same as { users: 'users', members: 'members' }.
+ * A routeNameMao of 'users' is the same as { users: 'users' }.
+ */
+export default (app, routeNameMap, options) => {
   const services = {};
+  let routeNames = {};
 
-  serviceNames.forEach(name => {
-    services[name] = reduxifyService(app, name, options);
+  if (typeof routeNameMap === 'string') {
+    routeNames = { [routeNameMap]: routeNameMap };
+  } else if (Array.isArray(routeNameMap)) {
+    routeNameMap.forEach(name => { routeNames[name] = name; });
+  } else if (typeof routeNameMap === 'object') {
+    routeNames = routeNameMap;
+  }
+
+  Object.keys(routeNames).forEach(route => {
+    services[routeNames[route]] = reduxifyService(app, route, routeNames[route], options);
   });
 
   return services;
@@ -172,10 +244,11 @@ export default (app, serviceNames, options) => {
  * Get a status to display as a summary of all Feathers services.
  *
  * The services are checked in serviceNames order.
- * The first service with an error, returns its error message as a status.
+ * The first service with an error message, returns that as the status.
  * Otherwise the first service loading or saving returns its status.
  *
- * @param {Object} servicesState .[name] has the JS state (not immutable) for service 'name'.
+ * @param {Object} servicesState - the slice of state containing the states for the services.
+ *    state[name] has the JS state (not immutable) for service 'name'.
  * @param {Array|String} serviceNames
  * @returns {{message: string, className: string, serviceName: string}}
  *    message is the English language status text.
@@ -192,12 +265,12 @@ export const getServicesStatus = (servicesState, serviceNames) => {
   serviceNames = // eslint-disable-line no-param-reassign
     Array.isArray(serviceNames) ? serviceNames : [serviceNames];
 
-
+  // Find an error with an err.message. 'Error' is what feather returns when there is no msg text.
   const done = serviceNames.some(name => {
     const state = servicesState[name];
 
-    if (state.isError) {
-      status.message = state.isError.message;
+    if (state && state.isError && state.isError.message && state.isError.message !== 'Error') {
+      status.message = `${name}: ${state.isError.message}`;
       status.className = state.isError.className;
       status.serviceName = name;
       return true;
@@ -211,7 +284,7 @@ export const getServicesStatus = (servicesState, serviceNames) => {
   serviceNames.some(name => {
     const state = servicesState[name];
 
-    if (state.isLoading || state.isSaving) {
+    if (state && !state.isError && (state.isLoading || state.isSaving)) {
       status.message = `${name} is ${state.isLoading ? 'loading' : 'saving'}`;
       status.className = state.isLoading ? 'isLoading' : 'isSaving';
       status.serviceName = name;

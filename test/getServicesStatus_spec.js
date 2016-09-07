@@ -86,7 +86,41 @@ describe('reduxify:getServicesStatus', () => {
 
     assert.deepEqual(
       getServicesStatus(rootState, 'users'),
-      status('xxx', 'yyy', 'users')
+      status('users: xxx', 'yyy', 'users')
+    );
+  });
+
+  it('ignore error status for error with no error.message', () => {
+    rootState.messages = services.messages.reducer(
+      rootState.messages, reducerActionType('messages', 'update', 'pending')
+    );
+    rootState.users = services.users.reducer(
+      rootState.users, reducerActionType('users', 'update', 'pending')
+    );
+    rootState.users = services.users.reducer(
+      rootState.users, reducerActionType('users', 'update', 'rejected', 'Error')
+    );
+
+    assert.deepEqual(
+      getServicesStatus(rootState, ['users', 'messages']),
+      status('messages is saving', 'isSaving', 'messages')
+    );
+  });
+
+  it('ignore error status for error with feather\'s default for no error.message', () => {
+    rootState.messages = services.messages.reducer(
+      rootState.messages, reducerActionType('messages', 'update', 'pending')
+    );
+    rootState.users = services.users.reducer(
+      rootState.users, reducerActionType('users', 'update', 'pending')
+    );
+    rootState.users = services.users.reducer(
+      rootState.users, reducerActionType('users', 'update', 'rejected', '')
+    );
+
+    assert.deepEqual(
+      getServicesStatus(rootState, ['users', 'messages']),
+      status('messages is saving', 'isSaving', 'messages')
     );
   });
 
@@ -128,7 +162,7 @@ describe('reduxify:getServicesStatus', () => {
 
     assert.deepEqual(
       getServicesStatus(rootState, ['messages', 'users']),
-      status('xxx', 'yyy', 'users')
+      status('users: xxx', 'yyy', 'users')
     );
   });
 });
@@ -139,8 +173,12 @@ function clone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
-function reducerActionType(service, method, step) {
-  const payload = step !== 'rejected' ? 'xxx' : { message: 'xxx', className: 'yyy' };
+function reducerActionType(service, method, step, errMessage) {
+  if (typeof errMessage === 'undefined') {
+    errMessage = 'xxx'; // eslint-disable-line no-param-reassign
+  }
+  const payload = step !== 'rejected' ? errMessage : { message: errMessage, className: 'yyy' };
+
   return {
     type: `SERVICES_${service.toUpperCase()}_${method.toUpperCase()}_${step.toUpperCase()}`,
     payload,

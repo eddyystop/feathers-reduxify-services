@@ -1,57 +1,43 @@
-# users-auth
+# feathers-reduxify-services example
 
-> Authenticate users locally
+> Example showing feathers-reduxify-services being used.
 
 ## About
 
-This project uses [Feathers](http://feathersjs.com). An open source web framework for building modern real-time applications.
+This project uses [Feathers](http://feathersjs.com).
+An open source web framework for building modern real-time applications.
 
-## Getting Started
+## Running the example
 
-Getting up and running is as easy as 1, 2, 3.
-
-1. Make sure you have [NodeJS](https://nodejs.org/) and [npm](https://www.npmjs.com/) installed.
+1. Make sure you have [NodeJS](https://nodejs.org/) installed.
 2. Install your dependencies
     
     ```
-    cd path/to/users-auth; npm install
+    npm install webpack -g
+    cd path/to/feathers-reduxify-services
+    npm install
+    cd example
+    npm install
     ```
 
-3. Start your app
+3. Build the client bundle
+   
+   `npm run build` bundles the client code into `public/dist/bundle.js`.
+   
+4. Start your app
     
     ```
+    cd path/to/feathers-reduxify-services/example
     npm start
     ```
 
-## Testing
-
-Simply run `npm test` and all your tests in the `test/` directory will be run.
-
-## Scaffolding
-
-Feathers has a powerful command line interface. Here are a few things it can do:
-
-```
-$ npm install -g feathers-cli             # Install Feathers CLI
-
-$ feathers generate service               # Generate a new Service
-$ feathers generate hook                  # Generate a new Hook
-$ feathers generate model                 # Generate a new Model
-$ feathers help                           # Show all commands
-```
-
 ## Help
 
-For more information on all the things you can do with Feathers visit [docs.feathersjs.com](http://docs.feathersjs.com).
-
-## Changelog
-
-__0.1.0__
-
-- Initial release
+For more information on all the things you can do with Feathers visit
+[docs.feathersjs.com](http://docs.feathersjs.com).
 
 ## License
 
-Copyright (c) 2016
+Copyright (c) 2016-2017
 
 Licensed under the [MIT license](LICENSE).

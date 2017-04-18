@@ -1,65 +1,28 @@
 
 /* eslint no-console: 0 */
 
-const hooks = require('feathers-hooks');
-const auth = require('feathers-authentication').hooks;
+const { when, discard } = require('feathers-hooks-common');
+const auth = require('feathers-authentication');
+const local = require('feathers-authentication-local');
 
 exports.before = {
-  all: [],
-  find: [
-    auth.verifyToken(),
-    auth.populateUser(),
-    auth.restrictToAuthenticated(),
-  ],
-  get: [
-    auth.verifyToken(),
-    auth.populateUser(),
-    auth.restrictToAuthenticated(),
-    auth.restrictToOwner({ ownerField: '_id' }),
-  ],
-  create: [
-    auth.hashPassword(),
-  ],
+  find: auth.hooks.authenticate('jwt'),
+  get: auth.hooks.authenticate('jwt'),
+  create: local.hooks.hashPassword(),
   update: [
-    auth.verifyToken(),
-    auth.populateUser(),
-    auth.restrictToAuthenticated(),
-    auth.restrictToOwner({ ownerField: '_id' }),
+    auth.hooks.authenticate('jwt'),
+    local.hooks.hashPassword()
   ],
   patch: [
-    auth.verifyToken(),
-    auth.populateUser(),
-    auth.restrictToAuthenticated(),
-    auth.restrictToOwner({ ownerField: '_id' }),
+    auth.hooks.authenticate('jwt'),
+    local.hooks.hashPassword()
   ],
-  remove: [
-    auth.verifyToken(),
-    auth.populateUser(),
-    auth.restrictToAuthenticated(),
-    auth.restrictToOwner({ ownerField: '_id' }),
-  ],
+  remove: auth.hooks.authenticate('jwt'),
 };
 
 exports.after = {
-  find: [
-    hooks.remove('password'),
-  ],
-  get: [
-    hooks.remove('password'),
-  ],
-  create: [
-    hooks.remove('password'),
-    emailVerification, // send email to verify the email addr
-  ],
-  update: [
-    hooks.remove('password'),
-  ],
-  patch: [
-    hooks.remove('password'),
-  ],
-  remove: [
-    hooks.remove('password'),
-  ],
+  all: when(hook => hook.provider, discard('password')),
+  create: emailVerification, // send email to verify the email addr  ],
 };
 
 function emailVerification(hook, next) {

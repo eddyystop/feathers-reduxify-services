@@ -7,7 +7,7 @@
     "lib": "lib"
   },
   "scripts": {
-    "copy": "rm -rf lib/ && cp -r src/ lib/",
+    "copy": "shx rm -rf lib/ && shx cp -r src/ lib/",
     "babel": "babel src/ --out-dir lib --presets babel-preset-es2015,babel-preset-stage-0",
     "babel:watch": "babel src/ --watch --out-dir lib --presets babel-preset-es2015,babel-preset-stage-0",
     "mocha": "mocha test/  --reporter spec --compilers js:babel-core/register",
@@ -47,34 +47,33 @@
   },
   "homepage": "https://github.com/eddyystop/feathers-reduxify-services#readme",
   "dependencies": {
-    "debug": "^2.2.0",
-    "object.assign": "^4.0.4",
-    "redux-actions": "^0.10.1"
+    "debug": "2.6.3",
+    "redux-actions": "2.0.2"
   },
   "devDependencies": {
-    "babel-cli": "^6.11.4",
-    "babel-core": "^6.11.4",
-    "babel-eslint": "^6.1.2",
-    "babel-loader": "^6.2.4",
-    "babel-plugin-add-module-exports": "^0.2.1",
-    "babel-plugin-transform-es2015-destructuring": "6.9.0",
-    "babel-plugin-transform-object-rest-spread": "6.8.0",
-    "babel-plugin-transform-runtime": "^6.5.2",
-    "babel-preset-es2015": "^6.9.0",
-    "babel-preset-stage-0": "6.5.0",
-    "chai": "^3.5.0",
-    "coveralls": "^2.11.12",
-    "eslint": "^3.2.0",
-    "eslint-config-airbnb": "^9.0.1",
-    "eslint-plugin-import": "^1.11.1",
-    "eslint-plugin-jsx-a11y": "^2.0.1",
-    "eslint-plugin-react": "^5.2.2",
+    "babel-cli": "6.24.1",
+    "babel-core": "6.24.1",
+    "babel-eslint": "7.2.2",
+    "babel-loader": "6.4.1",
+    "babel-plugin-add-module-exports": "0.2.1",
+    "babel-plugin-transform-es2015-destructuring": "6.23.0",
+    "babel-plugin-transform-object-rest-spread": "6.23.0",
+    "babel-plugin-transform-runtime": "6.23.0",
+    "babel-preset-es2015": "6.24.1",
+    "babel-preset-stage-0": "6.24.1",
+    "chai": "3.5.0",
+    "coveralls": "2.13.0",
+    "eslint": "3.19.0",
+    "eslint-config-airbnb": "14.1.0",
+    "eslint-plugin-import": "2.2.0",
+    "eslint-plugin-jsx-a11y": "4.0.0",
+    "eslint-plugin-react": "6.10.3",
     "feathers-tests-fake-app-users": "^1.0.0",
-    "istanbul": "^0.4.4",
-    "mocha": "^2.5.3"
+    "istanbul": "0.4.5",
+    "mocha": "3.2.0",
+    "shx": "0.2.2"
   },
   "engines": {
-    "node": ">=5.0.0",
-    "npm": ">=3.8.0"
+    "node": ">= 4.6.0"
   }
 }

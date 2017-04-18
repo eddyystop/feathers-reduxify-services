@@ -102,13 +102,28 @@ You can then require the utilities.
 
 ## Running the Example
 
-`cd example`
+Make sure you have [NodeJS](https://nodejs.org/) installed.
 
-`npm install`
+Install your dependencies.
+    
+```
+npm install webpack -g
+cd path/to/feathers-reduxify-services
+npm install
+cd example
+npm install
+```
+    
+Build the client bundle.
 
 `npm run build` bundles the client code into `public/dist/bundle.js`.
 
-`npm start`
+Start your app.
+    
+```
+cd path/to/feathers-reduxify-services/example
+npm start
+```
 
 The NeDb database `data/messages.db` has 6 items in it, with text `message 1` to `message 6`.
 
@@ -124,9 +139,6 @@ and exports their action creators and reducer as `{ services }`.
 `client/reducers/index.js` hooks up the reducers for the reduxified services.
 `client/index.js` performs the initial `create`, `find` and `get`.
 `client/App.js::mapDispatchToProps` dispatches UI events.
-
-**_Simple, huh._**
-
 
 ## API Reference
 
@@ -153,4 +165,4 @@ This repo does the heavy redux lifting in
 
 ## License
 
-MIT. See LICENSE.
+MIT. See [LICENSE](./LICENSE).

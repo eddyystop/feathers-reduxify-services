@@ -2,7 +2,7 @@
 /* global io */
 
 import feathers from 'feathers-client';
-import reduxifyServices, { getServicesStatus as getStatus } from '../../../lib';
+import reduxifyServices from '../../../lib';
 
 const socket = io();
 
@@ -12,5 +12,5 @@ const app = feathers()
   .configure(feathers.authentication({ storage: window.localStorage }));
 
 export default app;
-export const services = reduxifyServices(app, ['users', 'messages']);
-export const getServicesStatus = getStatus;
+export const routeMap = ['users', 'messages'];
+export const services = reduxifyServices(app, routeMap);

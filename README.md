@@ -41,11 +41,12 @@ Expose action creators and reducers for Feathers services. Then use them like no
 
 ```javascript
 import { applyMiddleware, combineReducers, createStore } from 'redux';
-import reduxifyServices, { getServicesStatus } from 'feathers-reduxify-services';
+import reduxifyServices, { automaticDispatchEvents } from 'feathers-reduxify-services';
 const feathersApp = feathers().configure(feathers.socketio(socket)) ...
 
 // Expose Redux action creators and reducers for Feathers' services
-const services = reduxifyServices(feathersApp, ['users', 'messages']);
+const routeMap = ['users', 'messages'];
+const services = reduxifyServices(feathersApp, routeMap);
 
 // Typical Redux store creation, crammed together
 const store = applyMiddleware(
@@ -62,24 +63,10 @@ store.dispatch(services.messages.create({ text: 'Shiver me timbers!' }));
 ```
 
 Dispatch Redux actions on Feathers' real time service events.
+Getting dispatched automatically after activation.
 
 ```javascript
-const messages = feathersApp.service('messages');
-
-messages.on('created', data => {
-  store.dispatch(
-    // Create a thunk action to invoke the function.
-    services.messages.on('created', data, (eventName, data, dispatch, getState) => {
-      console.log('--created event', data);
-    })
-  );
-});
-```
-
-Keep the user informed of service activity.
-
-```javascript
-const status = getServicesStatus(servicesRootState, ['users', 'messages']).message;
+automaticDispatchEvents(feathersApp, routeMap, store.dispatch, services)
 ```
 
 ## Motivation
@@ -162,6 +149,8 @@ This repo does the heavy redux lifting in
 ## Contributors
 
 - [eddyystop](https://github.com/eddyystop)
+- John Szwaronek
+- Dominic Pöllath
 
 ## License
 

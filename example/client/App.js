@@ -16,11 +16,6 @@ class App extends Component {
     onFind: PropTypes.func.isRequired,
   };
 
-  getStatusMessage() {
-    const status = getServicesStatus(this.props.servicesState, ['users', 'messages']).message;
-    return status && ' "It\'s ... ah ... it\'s green, Captain."';
-  }
-
   render() {
     const { messages } = this.props.servicesState;
     return (

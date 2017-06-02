@@ -62,14 +62,6 @@ import uuid from 'uuid';
  * Options may change the state property names and the reducer action type names.
  *
  * Each service also gets a reset service call which re-initializes that service's state.
- *
- * An action creator for listening on service events is returned as { on } and could be used like:
- *   import feathersApp, { services } from './feathers';
- *   feathersApp.service('messages').on('created', data => { store.dispatch(
- *       services.messages.on('created', data, (event, data, dispatch, getState) => {
- *         // handle data change
- *       })
- *   ); });
  */
 const reduxifyService = (app, route, name = route, options = {}) => {
   const debug = makeDebug(`reducer:${name}`);
@@ -98,10 +90,11 @@ const reduxifyService = (app, route, name = route, options = {}) => {
     throw Error(`Feathers service '${route} does not exist.`);
   }
 
-  const reducerForServiceMessages = (actionType, isDelete) => ({
+  const reducerForServiceMessages = (actionType) => ({
     [actionType]: (state, action) => {
       debug(`redux:${actionType}`, action);
 
+      const isDelete = actionType.endsWith('REMOVED');
       const arrayResult = (_.isArray(action.payload) ? action.payload : [action.payload]);
       const idField = _.has(arrayResult[0], 'id') ? 'id' : '_id';
       return {
@@ -113,23 +106,24 @@ const reduxifyService = (app, route, name = route, options = {}) => {
     }
   });
 
-  const reducerForServiceMethod = (actionType, ifLoading) => ({
+  const reducerForServiceMethod = (actionType) => ({
     // promise has been started
     [`${actionType}_${opts.PENDING}`]: (state, action) => {
       debug(`redux:${actionType}_${opts.PENDING}`, action);
 
-      let request = {};
-      request[action.meta.rid] = {
-        [opts.isLoading]: ifLoading,
-        [opts.isSaving]: !ifLoading,
-        [opts.isFinished]: false,
-        [opts.isError]: null,
-        [opts.query]: action.meta.query,
-      };
-
+      const ifLoading = actionType.endsWith('FIND') || actionType.endsWith('GET');
       return ({
         ...state,
-        [opts.requests]: _.merge(state[opts.requests], request),
+        [opts.requests]: {
+          ...state[opts.requests],
+          [action.meta.rid]: {
+            [opts.isLoading]: ifLoading,
+            [opts.isSaving]: !ifLoading,
+            [opts.isFinished]: false,
+            [opts.isError]: null,
+            [opts.query]: action.meta.query,
+          }
+        },
       });
     },
 
@@ -139,20 +133,22 @@ const reduxifyService = (app, route, name = route, options = {}) => {
 
       const arrayResult = (_.isArray(action.payload) ? action.payload : [action.payload]);
       const idField = _.has(arrayResult[0], 'id') ? 'id' : '_id';
-      let request = {};
-      request[action.meta.rid] = {
-        id: action.meta.rid,
-        [opts.isLoading]: false,
-        [opts.isSaving]: false,
-        [opts.isFinished]: true,
-        [opts.isError]: null,
-        [opts.result]: _.map(arrayResult, idField)
-      };
-
+      const isDelete = actionType.endsWith('REMOVE');
       return {
         ...state,
-        [opts.data]: _.unionBy(arrayResult, state[opts.data], idField),
-        [opts.requests]: _.merge(state[opts.requests], request),
+        [opts.data]: isDelete ? _.filter(state[opts.data],
+            (obj) => (_.map(arrayResult, (o) => o[idField]).indexOf(obj[idField]) === -1)) :
+            _.unionBy(arrayResult, state[opts.data], idField),
+        [opts.requests]: {
+          ...state[opts.requests],
+          [action.meta.rid]: {
+            ...state[opts.requests][action.meta.rid],
+            [opts.isLoading]: false,
+            [opts.isSaving]: false,
+            [opts.isFinished]: true,
+            [opts.result]: _.map(arrayResult, idField)
+          }
+        },
       };
     },
 
@@ -160,17 +156,18 @@ const reduxifyService = (app, route, name = route, options = {}) => {
     [`${actionType}_${opts.REJECTED}`]: (state, action) => {
       debug(`redux:${actionType}_${opts.REJECTED}`, action);
 
-      let request = {};
-      request[action.meta.rid] = {
-        [opts.isLoading]: false,
-        [opts.isSaving]: false,
-        [opts.isFinished]: true,
-        [opts.isError]: action.payload
-      };
-
       return {
         ...state,
-        [opts.requests]: _.merge(state[opts.requests], request),
+        [opts.requests]: {
+          ...state[opts.requests],
+          [action.meta.rid]: {
+            ...state[opts.requests][action.meta.rid],
+            [opts.isLoading]: false,
+            [opts.isSaving]: false,
+            [opts.isFinished]: true,
+            [opts.isError]: action.payload,
+          }
+        },
       };
     },
   });
@@ -206,34 +203,33 @@ const reduxifyService = (app, route, name = route, options = {}) => {
     patched: createAction(`${PATCH}ED`, d => d),
     removed: createAction(`${REMOVE}D`, d => d),
 
-    // on: (event, data, fcn) => (dispatch, getState) => { fcn(event, data, dispatch, getState); },
-
     // REDUCER
     reducer: handleActions(
       Object.assign({},
-        reducerForServiceMethod(FIND, true),
-        reducerForServiceMethod(GET, true),
-        reducerForServiceMethod(CREATE, false),
-        reducerForServiceMethod(UPDATE, false),
-        reducerForServiceMethod(PATCH, false),
-        reducerForServiceMethod(REMOVE, false),
+        reducerForServiceMethod(FIND),
+        reducerForServiceMethod(GET),
+        reducerForServiceMethod(CREATE),
+        reducerForServiceMethod(UPDATE),
+        reducerForServiceMethod(PATCH),
+        reducerForServiceMethod(REMOVE),
 
         reducerForServiceMessages(`${CREATE}D`),
         reducerForServiceMessages(`${UPDATE}D`),
         reducerForServiceMessages(`${PATCH}ED`),
-        reducerForServiceMessages(`${REMOVE}D`, true),
+        reducerForServiceMessages(`${REMOVE}D`),
 
         // reset status if no promise is pending
         { [RESET]: (state, action) => {
           debug(`redux:${RESET}`, action);
 
-          if (state[opts.isLoading] || state[opts.isSaving]) {
+          if (_.some(state[opts.requests], opts.isLoading) ||
+              _.some(state[opts.requests], opts.isSaving)) {
             return state;
           }
 
           return {
             ...state,
-            [opts.data]: [],
+            [opts.data]: action.payload ? state[opts.data] : [],
             [opts.requests]: {},
           };
         } }
@@ -300,7 +296,8 @@ const EVENTS = [
  * Otherwise the first service loading or saving returns its status.
  *
  * @param {Object} app - See reduxifyService
- * @param {Object|Array|String} routeNameMap - The feathers services to reduxify. See default export function.
+ * @param {Object|Array|String} routeNameMap - The feathers services to reduxify.
+ *                              See default export function.
  * @param {function} dispatch - store.dispatch method
  * @param {Object} services - return value of default. See above.
  */

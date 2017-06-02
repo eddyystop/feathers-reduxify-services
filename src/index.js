@@ -1,6 +1,8 @@
 
 import { createAction, handleActions } from 'redux-actions';
 import makeDebug from 'debug';
+import _ from 'lodash';
+import uuid from 'uuid';
 
 /**
  * Build a Redux compatible wrapper around a Feathers service.
@@ -38,45 +40,42 @@ import makeDebug from 'debug';
  * Pro tip: You can implement optimistic updates within ...PENDING, finalizing them in ...FULFILL.
  *
  * The reducer's JS state (not immutable) is {
- *   isError: String|null,
+ *   data: Array,
+ *   requests: Object,
+ * }.
+ * Methods store in data, requests|Object for separation.
+ *
+ * The reducer's JS request (not immutable) is {
  *   isLoading: Boolean,
  *   isSaving: Boolean,
  *   isFinished: Boolean,
- *   data: Object|null,
- *   queryResult: Object|null
+ *   isError: Object|null,
+ *   result: Array|null,
+ *   query: Object|null,
  * }.
- * The find service call stores Feathers' query payload in queryResult. Other methods store in data.
  *
- * isError is Feathers' error payload { message, name, code, className, errors }.
+ * requests is an Object which returns id's from a request (data|Array)
+ * or the error object { message, name, code, className, errors }.
  * If the feathers server response did not specify an error message, then the message property will
  * be feathers default of 'Error'.
  *
  * Options may change the state property names and the reducer action type names.
  *
  * Each service also gets a reset service call which re-initializes that service's state.
- * This may be used, for example, to remove isError in order to no longer render error messages.
- * store.dispatch(messages.reset(true)) will leave queryResult as is during initialization.
- *
- * An action creator for listening on service events is returned as { on } and could be used like:
- *   import feathersApp, { services } from './feathers';
- *   feathersApp.service('messages').on('created', data => { store.dispatch(
- *       services.messages.on('created', data, (event, data, dispatch, getState) => {
- *         // handle data change
- *       })
- *   ); });
  */
-
 const reduxifyService = (app, route, name = route, options = {}) => {
   const debug = makeDebug(`reducer:${name}`);
   debug(`route ${route}`);
 
   const defaults = {
-    isError: 'isError',
     isLoading: 'isLoading',
     isSaving: 'isSaving',
     isFinished: 'isFinished',
+    isError: 'isError',
     data: 'data',
-    queryResult: 'queryResult',
+    query: 'query',
+    result: 'result',
+    requests: 'requests',
     PENDING: 'PENDING',
     FULFILLED: 'FULFILLED',
     REJECTED: 'REJECTED',
@@ -91,54 +90,89 @@ const reduxifyService = (app, route, name = route, options = {}) => {
     throw Error(`Feathers service '${route} does not exist.`);
   }
 
-  const reducerForServiceMethod = (actionType, ifLoading, isFind) => ({
+  const reducerForServiceMessages = (actionType) => ({
+    [actionType]: (state, action) => {
+      debug(`redux:${actionType}`, action);
+
+      const isDelete = actionType.endsWith('REMOVED');
+      const arrayResult = (_.isArray(action.payload) ? action.payload : [action.payload]);
+      const idField = _.has(arrayResult[0], 'id') ? 'id' : '_id';
+      return {
+        ...state,
+        [opts.data]: isDelete ? _.filter(state[opts.data],
+            (obj) => (_.map(arrayResult, (o) => o[idField]).indexOf(obj[idField]) === -1)) :
+            _.unionBy(arrayResult, state[opts.data], idField),
+      };
+    }
+  });
+
+  const reducerForServiceMethod = (actionType) => ({
     // promise has been started
     [`${actionType}_${opts.PENDING}`]: (state, action) => {
       debug(`redux:${actionType}_${opts.PENDING}`, action);
+
+      const ifLoading = actionType.endsWith('FIND') || actionType.endsWith('GET');
       return ({
         ...state,
-        [opts.isError]: null,
-        [opts.isLoading]: ifLoading,
-        [opts.isSaving]: !ifLoading,
-        [opts.isFinished]: false,
-        [opts.data]: null,
-        [opts.queryResult]: state[opts.queryResult] || null, //  leave previous to reduce redraw
+        [opts.requests]: {
+          ...state[opts.requests],
+          [action.meta.rid]: {
+            [opts.isLoading]: ifLoading,
+            [opts.isSaving]: !ifLoading,
+            [opts.isFinished]: false,
+            [opts.isError]: null,
+            [opts.query]: action.meta.query,
+          }
+        },
       });
     },
 
     // promise resolved
     [`${actionType}_${opts.FULFILLED}`]: (state, action) => {
       debug(`redux:${actionType}_${opts.FULFILLED}`, action);
+
+      const arrayResult = (_.isArray(action.payload) ? action.payload : [action.payload]);
+      const idField = _.has(arrayResult[0], 'id') ? 'id' : '_id';
+      const isDelete = actionType.endsWith('REMOVE');
       return {
         ...state,
-        [opts.isError]: null,
-        [opts.isLoading]: false,
-        [opts.isSaving]: false,
-        [opts.isFinished]: true,
-        [opts.data]: !isFind ? action.payload : null,
-        [opts.queryResult]: isFind ? action.payload : (state[opts.queryResult] || null),
+        [opts.data]: isDelete ? _.filter(state[opts.data],
+            (obj) => (_.map(arrayResult, (o) => o[idField]).indexOf(obj[idField]) === -1)) :
+            _.unionBy(arrayResult, state[opts.data], idField),
+        [opts.requests]: {
+          ...state[opts.requests],
+          [action.meta.rid]: {
+            ...state[opts.requests][action.meta.rid],
+            [opts.isLoading]: false,
+            [opts.isSaving]: false,
+            [opts.isFinished]: true,
+            [opts.result]: _.map(arrayResult, idField)
+          }
+        },
       };
     },
 
     // promise rejected
     [`${actionType}_${opts.REJECTED}`]: (state, action) => {
       debug(`redux:${actionType}_${opts.REJECTED}`, action);
+
       return {
         ...state,
-        // action.payload = { name: "NotFound", message: "No record found for id 'G6HJ45'",
-        //   code:404, className: "not-found" }
-        [opts.isError]: action.payload,
-        [opts.isLoading]: false,
-        [opts.isSaving]: false,
-        [opts.isFinished]: true,
-        [opts.data]: null,
-        [opts.queryResult]: isFind ? null : (state[opts.queryResult] || null),
+        [opts.requests]: {
+          ...state[opts.requests],
+          [action.meta.rid]: {
+            ...state[opts.requests][action.meta.rid],
+            [opts.isLoading]: false,
+            [opts.isSaving]: false,
+            [opts.isFinished]: true,
+            [opts.isError]: action.payload,
+          }
+        },
       };
     },
   });
 
   // ACTION TYPES
-
   const FIND = `${SERVICE_NAME}FIND`;
   const GET = `${SERVICE_NAME}GET`;
   const CREATE = `${SERVICE_NAME}CREATE`;
@@ -150,52 +184,59 @@ const reduxifyService = (app, route, name = route, options = {}) => {
   return {
     // ACTION CREATORS
     // Note: action.payload in reducer will have the value of .data below
-    find: createAction(FIND, (p) => ({ promise: service.find(p), data: undefined })),
-    get: createAction(GET, (id, p) => ({ promise: service.get(id, p) })),
-    create: createAction(CREATE, (d, p) => ({ promise: service.create(d, p) })),
-    update: createAction(UPDATE, (id, d, p) => ({ promise: service.update(id, d, p) })),
-    patch: createAction(PATCH, (id, d, p) => ({ promise: service.patch(id, d, p) })),
-    remove: createAction(REMOVE, (id, p) => ({ promise: service.remove(id, p) })),
+    find: createAction(FIND, (p) => ({ promise: service.find(p), data: undefined }),
+        (p, rid) => ({ query: p, rid: (rid || uuid.v4()) })),
+    get: createAction(GET, (id, p) => ({ promise: service.get(id, p) }),
+        (id, p, rid) => ({ query: p, rid: (rid || uuid.v4()) })),
+    create: createAction(CREATE, (d, p) => ({ promise: service.create(d, p) }),
+        (d, p, rid) => ({ query: p, rid: (rid || uuid.v4()) })),
+    update: createAction(UPDATE, (id, d, p) => ({ promise: service.update(id, d, p) }),
+        (id, d, p, rid) => ({ query: p, rid: (rid || uuid.v4()) })),
+    patch: createAction(PATCH, (id, d, p) => ({ promise: service.patch(id, d, p) }),
+        (id, d, p, rid) => ({ query: p, rid: (rid || uuid.v4()) })),
+    remove: createAction(REMOVE, (id, p) => ({ promise: service.remove(id, p) }),
+        (id, p, rid) => ({ query: p, rid: (rid || uuid.v4()) })),
     reset: createAction(RESET),
-    on: (event, data, fcn) => (dispatch, getState) => { fcn(event, data, dispatch, getState); },
+
+    created: createAction(`${CREATE}D`, d => d),
+    updated: createAction(`${UPDATE}D`, d => d),
+    patched: createAction(`${PATCH}ED`, d => d),
+    removed: createAction(`${REMOVE}D`, d => d),
 
     // REDUCER
-
     reducer: handleActions(
       Object.assign({},
-        reducerForServiceMethod(FIND, true, true),
-        reducerForServiceMethod(GET, true),
-        reducerForServiceMethod(CREATE, false),
-        reducerForServiceMethod(UPDATE, false),
-        reducerForServiceMethod(PATCH, false),
-        reducerForServiceMethod(REMOVE, false),
+        reducerForServiceMethod(FIND),
+        reducerForServiceMethod(GET),
+        reducerForServiceMethod(CREATE),
+        reducerForServiceMethod(UPDATE),
+        reducerForServiceMethod(PATCH),
+        reducerForServiceMethod(REMOVE),
+
+        reducerForServiceMessages(`${CREATE}D`),
+        reducerForServiceMessages(`${UPDATE}D`),
+        reducerForServiceMessages(`${PATCH}ED`),
+        reducerForServiceMessages(`${REMOVE}D`),
 
         // reset status if no promise is pending
         { [RESET]: (state, action) => {
           debug(`redux:${RESET}`, action);
 
-          if (state[opts.isLoading] || state[opts.isSaving]) {
+          if (_.some(state[opts.requests], opts.isLoading) ||
+              _.some(state[opts.requests], opts.isSaving)) {
             return state;
           }
 
           return {
             ...state,
-            [opts.isError]: null,
-            [opts.isLoading]: false,
-            [opts.isSaving]: false,
-            [opts.isFinished]: false,
-            [opts.data]: null,
-            [opts.queryResult]: action.payload ? state[opts.queryResult] : null,
+            [opts.data]: action.payload ? state[opts.data] : [],
+            [opts.requests]: {},
           };
         } }
       ),
       {
-        [opts.isError]: null,
-        [opts.isLoading]: false,
-        [opts.isSaving]: false,
-        [opts.isFinished]: false,
-        [opts.data]: null,
-        [opts.queryResult]: null,
+        [opts.data]: [],
+        [opts.requests]: {},
       }
     ),
   };
@@ -223,22 +264,20 @@ const reduxifyService = (app, route, name = route, options = {}) => {
  */
 export default (app, routeNameMap, options) => {
   const services = {};
-  let routeNames = {};
-
-  if (typeof routeNameMap === 'string') {
-    routeNames = { [routeNameMap]: routeNameMap };
-  } else if (Array.isArray(routeNameMap)) {
-    routeNameMap.forEach(name => { routeNames[name] = name; });
-  } else if (typeof routeNameMap === 'object') {
-    routeNames = routeNameMap;
-  }
-
+  const routeNames = convertRouteNames(routeNameMap);
   Object.keys(routeNames).forEach(route => {
     services[routeNames[route]] = reduxifyService(app, route, routeNames[route], options);
   });
 
   return services;
 };
+
+const EVENTS = [
+  'created',
+  'updated',
+  'patched',
+  'removed',
+];
 
 /**
  * Get a status to display as a summary of all Feathers services.
@@ -247,52 +286,37 @@ export default (app, routeNameMap, options) => {
  * The first service with an error message, returns that as the status.
  * Otherwise the first service loading or saving returns its status.
  *
- * @param {Object} servicesState - the slice of state containing the states for the services.
- *    state[name] has the JS state (not immutable) for service 'name'.
- * @param {Array|String} serviceNames
- * @returns {{message: string, className: string, serviceName: string}}
- *    message is the English language status text.
- *    You can create your own internationalized messages with serviceName and className.
- *    className will be isLoading, isSaving or it will be Feathers' error's className.
+ * @param {Object} app - See reduxifyService
+ * @param {Object|Array|String} routeNameMap - The feathers services to reduxify.
+ *                              See default export function.
+ * @param {function} dispatch - store.dispatch method
+ * @param {Object} services - return value of default. See above.
  */
-
-export const getServicesStatus = (servicesState, serviceNames) => {
-  var status = { // eslint-disable-line no-var
-    message: '',
-    className: '',
-    serviceName: '',
-  };
-  serviceNames = // eslint-disable-line no-param-reassign
-    Array.isArray(serviceNames) ? serviceNames : [serviceNames];
-
-  // Find an error with an err.message. 'Error' is what feather returns when there is no msg text.
-  const done = serviceNames.some(name => {
-    const state = servicesState[name];
-
-    if (state && state.isError && state.isError.message && state.isError.message !== 'Error') {
-      status.message = `${name}: ${state.isError.message}`;
-      status.className = state.isError.className;
-      status.serviceName = name;
-      return true;
+export const automaticDispatchEvents = (app, routeNameMap, dispatch, services) => {
+  const routeNames = convertRouteNames(routeNameMap);
+  const debug = makeDebug('automaticDispatchEvents');
+  Object.keys(routeNames).forEach(route => {
+    const service = app.service(route);
+    if (_.isFunction(service.on)) {
+      EVENTS.forEach(event => {
+        service.on(event, (data) => {
+          debug(`event:${event}`, data);
+          dispatch(services[routeNames[route]][event](data));
+        });
+      });
     }
-
-    return false;
   });
+};
 
-  if (done) { return status; }
 
-  serviceNames.some(name => {
-    const state = servicesState[name];
-
-    if (state && !state.isError && (state.isLoading || state.isSaving)) {
-      status.message = `${name} is ${state.isLoading ? 'loading' : 'saving'}`;
-      status.className = state.isLoading ? 'isLoading' : 'isSaving';
-      status.serviceName = name;
-      return true;
-    }
-
-    return false;
-  });
-
-  return status;
+const convertRouteNames = (routeNameMap) => {
+  let routeNames = {};
+  if (typeof routeNameMap === 'string') {
+    routeNames = { [routeNameMap]: routeNameMap };
+  } else if (Array.isArray(routeNameMap)) {
+    routeNameMap.forEach(name => { routeNames[name] = name; });
+  } else if (typeof routeNameMap === 'object') {
+    routeNames = routeNameMap;
+  }
+  return routeNames;
 };

@@ -29,42 +29,34 @@ describe('reduxify:reducer - array of paths', () => {
     const state = services.users.reducer(undefined, '@@INIT'); // action type Redux uses during init
     assert.isObject(state);
     assert.deepEqual(state, {
-      isError: null,
-      isLoading: false,
-      isSaving: false,
-      isFinished: false,
-      data: null,
-      queryResult: null,
+      data: [],
+      requests: {},
     });
   });
 
   ['find', 'get', 'create', 'update', 'patch', 'remove'].forEach(method => {
+    let lastState = { data: [], requests: {} };
     describe(`returns expected state for ${method}`, () => {
-      ['pending', 'fulfilled', 'rejected'].forEach(step => {
+      ['pending', 'fulfilled'].forEach(step => {
         it(`for ${step}`, () => {
-          var validStates = getValidStates(false);
-          if (method === 'find') { validStates = getValidStates(true, true); }
-          if (method === 'get') { validStates = getValidStates(true); }
-
-          const state = services.users.reducer({}, reducerActionType(method, step));
-          assert.deepEqual(state, validStates[step]);
+          const validStates = getValidStates(method === 'get' || method === 'find', method === 'remove');
+          lastState = services.users.reducer(lastState,
+                    reducerActionType(method, step));
+          assert.deepEqual(lastState, validStates[step]);
         });
       });
     });
   });
 
-  ['get', 'create', 'update', 'patch', 'remove'].forEach(method => {
-    describe(`does not change queryResult for ${method}`, () => {
-      ['pending', 'fulfilled', 'rejected'].forEach(step => {
+  ['find', 'get', 'create', 'update', 'patch', 'remove'].forEach(method => {
+    let lastState = { data: [], requests: {} };
+    describe(`returns expected state for ${method}`, () => {
+      ['pending', 'rejected'].forEach(step => {
         it(`for ${step}`, () => {
-          var validStates = getValidStates(false, false, true);
-          if (method === 'find') { validStates = getValidStates(true, true, true); }
-          if (method === 'get') { validStates = getValidStates(true, false, true); }
-
-          const state = services.users.reducer(
-            { queryResult: [{ a: 'a' }] }, reducerActionType(method, step)
-          );
-          assert.deepEqual(state, validStates[step]);
+          const validStates = getValidStates(method === 'get' || method === 'find', method === 'remove');
+          lastState = services.users.reducer(lastState,
+                reducerActionType(method, step));
+          assert.deepEqual(lastState, validStates[step]);
         });
       });
     });
@@ -74,50 +66,40 @@ describe('reduxify:reducer - array of paths', () => {
     it('resets state', () => {
       const state = services.users.reducer({}, services.users.reset());
       assert.deepEqual(state, {
-        isError: null,
-        isLoading: false,
-        isSaving: false,
-        isFinished: false,
-        data: null,
-        queryResult: null,
+        data: [],
+        requests: {},
       });
     });
 
     it('does not reset on isLoading', () => {
-      const state = services.users.reducer({ isLoading: true }, services.users.reset());
-      assert.deepEqual(state, { isLoading: true });
+      const state = services.users.reducer({ requests: { rid: { isLoading: true } } },
+          services.users.reset());
+      assert.deepEqual(state, { requests: { rid: { isLoading: true } } });
     });
 
     it('does not reset on isSaving', () => {
-      const state = services.users.reducer({ isSaving: true }, services.users.reset());
-      assert.deepEqual(state, { isSaving: true });
+      const state = services.users.reducer({ requests: { rid: { isSaving: true } } },
+          services.users.reset());
+      assert.deepEqual(state, { requests: { rid: { isSaving: true } } });
     });
 
-    it('resets queryResult by default', () => {
+    it('resets data & requests by default', () => {
       const state = services.users.reducer(
-        { queryResult: [{ a: 'a' }] }, services.users.reset()
+        { data: [{ a: 'a' }] }, services.users.reset()
       );
       assert.deepEqual(state, {
-        isError: null,
-        isLoading: false,
-        isSaving: false,
-        isFinished: false,
-        data: null,
-        queryResult: null,
+        data: [],
+        requests: {},
       });
     });
 
-    it('does not reset queryResult on truthy', () => {
+    it('does not reset data on truthy', () => {
       const state = services.users.reducer(
-        { queryResult: [{ a: 'a' }] }, services.users.reset(true)
+        { data: [{ a: 'a' }] }, services.users.reset(true)
       );
       assert.deepEqual(state, {
-        isError: null,
-        isLoading: false,
-        isSaving: false,
-        isFinished: false,
-        data: null,
-        queryResult: [{ a: 'a' }],
+        data: [{ a: 'a' }],
+        requests: {},
       });
     });
   });
@@ -145,12 +127,8 @@ describe('reduxify:reducer - single path', () => {
     const state = services.users.reducer(undefined, '@@INIT'); // action type Redux uses during init
     assert.isObject(state);
     assert.deepEqual(state, {
-      isError: null,
-      isLoading: false,
-      isSaving: false,
-      isFinished: false,
-      data: null,
-      queryResult: null,
+      data: [],
+      requests: {},
     });
   });
 });
@@ -177,12 +155,8 @@ describe('reduxify:reducer - path & convenience name', () => {
     const state = services.users.reducer(undefined, '@@INIT'); // action type Redux uses during init
     assert.isObject(state);
     assert.deepEqual(state, {
-      isError: null,
-      isLoading: false,
-      isSaving: false,
-      isFinished: false,
-      data: null,
-      queryResult: null,
+      data: [],
+      requests: {},
     });
   });
 });
@@ -193,41 +167,54 @@ function clone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
+const transferedPayload = { id: 'id', a: 'a' };
+
 function reducerActionType(method, step) {
   return {
     type: `SERVICES_USERS_${method.toUpperCase()}_${step.toUpperCase()}`,
-    payload: 'xxx',
+    payload: transferedPayload,
+    meta: { query: 'query', rid: 'rid' },
   };
 }
 
-function getValidStates(ifLoading, isFind, haveQueryResult) {
-  const qr = haveQueryResult ? [{ a: 'a' }] : null;
-
+function getValidStates(ifLoading, ifRemove) {
   return {
     pending: {
-      isError: null,
-      isLoading: ifLoading,
-      isSaving: !ifLoading,
-      isFinished: false,
-      data: null,
-      queryResult: qr,
-
+      data: [],
+      requests: {
+        rid: {
+          isError: null,
+          isLoading: ifLoading,
+          isSaving: !ifLoading,
+          isFinished: false,
+          query: 'query',
+        },
+      },
     },
     fulfilled: {
-      isError: null,
-      isLoading: false,
-      isSaving: false,
-      isFinished: true,
-      data: !isFind ? 'xxx' : null,
-      queryResult: isFind ? 'xxx' : qr,
+      data: (ifRemove ? [] : [transferedPayload]),
+      requests: {
+        rid: {
+          isError: null,
+          isLoading: false,
+          isSaving: false,
+          isFinished: true,
+          query: 'query',
+          result: ['id'],
+        },
+      },
     },
     rejected: {
-      isError: 'xxx',
-      isLoading: false,
-      isSaving: false,
-      isFinished: true,
-      data: null,
-      queryResult: qr,
+      data: [],
+      requests: {
+        rid: {
+          isError: transferedPayload,
+          isLoading: false,
+          isSaving: false,
+          isFinished: true,
+          query: 'query',
+        },
+      },
     },
   };
 }

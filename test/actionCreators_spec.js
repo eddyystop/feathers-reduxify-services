@@ -61,7 +61,7 @@ describe('reduxify:action-creators', () => {
 
         const action = services.users[method].apply(this, valids[method].args);
 
-        assert.sameMembers(Object.keys(action), ['type', 'payload']);
+        assert.sameMembers(Object.keys(action), ['type', 'payload', 'meta']);
         assert.equal(action.type, actionType(method));
         assert.instanceOf(action.payload.promise, Promise);
       });

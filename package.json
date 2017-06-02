@@ -1,6 +1,6 @@
 {
   "name": "feathers-reduxify-services",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Wrap Feathers services so they work transparently and perfectly with Redux.",
   "main": "lib/",
   "directories": {
@@ -26,7 +26,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/eddyystop/feathers-reduxify-services.git"
+    "url": "git+https://github.com/ILS-Gmbh/feathers-reduxify-services.git"
   },
   "keywords": [
     "feathers",
@@ -40,15 +40,17 @@
     "actioncreator",
     "reducer"
   ],
-  "author": "John Szwaronek <johnsz9999@gmail.com>",
+  "author": "Dominic Pöllath <dominic.poellath@ils-gmbh.net>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/eddyystop/feathers-reduxify-services/issues"
+    "url": "https://github.com/ILS-Gmbh/feathers-reduxify-services/issues"
   },
-  "homepage": "https://github.com/eddyystop/feathers-reduxify-services#readme",
+  "homepage": "https://github.com/ILS-Gmbh/feathers-reduxify-services#readme",
   "dependencies": {
     "debug": "2.6.3",
-    "redux-actions": "2.0.2"
+    "lodash": "^4.17.4",
+    "redux-actions": "2.0.2",
+    "uuid": "^3.0.1"
   },
   "devDependencies": {
     "babel-cli": "6.24.1",

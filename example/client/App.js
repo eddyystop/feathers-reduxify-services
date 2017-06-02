@@ -1,7 +1,7 @@
 import React, { Component, PropTypes } from 'react';
 import { connect } from 'react-redux';
 import SimpleInput from 'react-simple-input';
-import { services, getServicesStatus } from './feathers';
+import { services } from './feathers';
 
 // import logo from './logo.svg';
 // import './App.css';
@@ -15,11 +15,6 @@ class App extends Component {
     onGet: PropTypes.func.isRequired,
     onFind: PropTypes.func.isRequired,
   };
-
-  getStatusMessage() {
-    const status = getServicesStatus(this.props.servicesState, ['users', 'messages']).message;
-    return status && ' "It\'s ... ah ... it\'s green, Captain."';
-  }
 
   render() {
     const { messages } = this.props.servicesState;
@@ -45,10 +40,6 @@ class App extends Component {
         </div>
         <br />
         <div className="App-status">
-          getServicesStatus():
-          <span style={{ fontStyle: 'italic' }}> {this.getStatusMessage()}</span>
-          <br />
-          <br />
           state.messages.data:
           <figure>
             <pre>
@@ -58,11 +49,11 @@ class App extends Component {
             </pre>
           </figure>
           <br />
-          state.messages.queryResult:
+          state.messages.requests:
           <figure>
             <pre>
               <code>
-                {messages.queryResult ? JSON.stringify(messages.queryResult, null, 2) : ''}
+                {messages.requests ? JSON.stringify(messages.requests, null, 2) : ''}
               </code>
             </pre>
           </figure>

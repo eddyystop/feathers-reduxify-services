@@ -62,24 +62,6 @@ describe('reduxify:reducer - array of paths', () => {
     });
   });
 
-    /*  ['get', 'create', 'update', 'patch', 'remove'].forEach(method => {
-        describe(`does not change queryResult for ${method}`, () => {
-          ['pending', 'fulfilled', 'rejected'].forEach(step => {
-            it(`for ${step}`, () => {
-              var validStates = getValidStates(false, false, true);
-              if (method === 'find') { validStates = getValidStates(true, true, true); }
-              if (method === 'get') { validStates = getValidStates(true, false, true); }
-
-              const state = services.users.reducer(
-                { queryResult: [{ a: 'a' }] }, reducerActionType(method, step)
-              );
-              assert.deepEqual(state, validStates[step]);
-            });
-          });
-        });
-      });
-    */
-
   describe('for reset', () => {
     it('resets state', () => {
       const state = services.users.reducer({}, services.users.reset());

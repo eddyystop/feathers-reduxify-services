@@ -264,16 +264,7 @@ const reduxifyService = (app, route, name = route, options = {}) => {
  */
 export default (app, routeNameMap, options) => {
   const services = {};
-  let routeNames = {};
-
-  if (typeof routeNameMap === 'string') {
-    routeNames = { [routeNameMap]: routeNameMap };
-  } else if (Array.isArray(routeNameMap)) {
-    routeNameMap.forEach(name => { routeNames[name] = name; });
-  } else if (typeof routeNameMap === 'object') {
-    routeNames = routeNameMap;
-  }
-
+  const routeNames = convertRouteNames(routeNameMap);
   Object.keys(routeNames).forEach(route => {
     services[routeNames[route]] = reduxifyService(app, route, routeNames[route], options);
   });
@@ -302,6 +293,23 @@ const EVENTS = [
  * @param {Object} services - return value of default. See above.
  */
 export const automaticDispatchEvents = (app, routeNameMap, dispatch, services) => {
+  const routeNames = convertRouteNames(routeNameMap);
+  const debug = makeDebug('automaticDispatchEvents');
+  Object.keys(routeNames).forEach(route => {
+    const service = app.service(route);
+    if (_.isFunction(service.on)) {
+      EVENTS.forEach(event => {
+        service.on(event, (data) => {
+          debug(`event:${event}`, data);
+          dispatch(services[routeNames[route]][event](data));
+        });
+      });
+    }
+  });
+};
+
+
+const convertRouteNames = (routeNameMap) => {
   let routeNames = {};
   if (typeof routeNameMap === 'string') {
     routeNames = { [routeNameMap]: routeNameMap };
@@ -310,16 +318,5 @@ export const automaticDispatchEvents = (app, routeNameMap, dispatch, services) =
   } else if (typeof routeNameMap === 'object') {
     routeNames = routeNameMap;
   }
-
-  Object.keys(routeNames).forEach(route => {
-    const debug = makeDebug(`event:${route}`);
-    const service = app.service(route);
-    EVENTS.forEach(event => {
-      service.on(event, (data) => {
-        debug(`event:${event}`, data);
-        dispatch(services[routeNames[route]][event](data));
-      });
-    });
-  });
+  return routeNames;
 };
-

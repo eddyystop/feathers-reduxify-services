@@ -77,6 +77,7 @@ const reduxifyService = (app, route, name = route, options = {}) => {
     isFinished: 'isFinished',
     data: 'data',
     queryResult: 'queryResult',
+    store: 'store',
     PENDING: 'PENDING',
     FULFILLED: 'FULFILLED',
     REJECTED: 'REJECTED',
@@ -146,6 +147,7 @@ const reduxifyService = (app, route, name = route, options = {}) => {
   const PATCH = `${SERVICE_NAME}PATCH`;
   const REMOVE = `${SERVICE_NAME}REMOVE`;
   const RESET = `${SERVICE_NAME}RESET`;
+  const STORE = `${SERVICE_NAME}STORE`;
 
   return {
     // ACTION CREATORS
@@ -157,6 +159,7 @@ const reduxifyService = (app, route, name = route, options = {}) => {
     patch: createAction(PATCH, (id, d, p) => ({ promise: service.patch(id, d, p) })),
     remove: createAction(REMOVE, (id, p) => ({ promise: service.remove(id, p) })),
     reset: createAction(RESET),
+    store: createAction(STORE),
     on: (event, data, fcn) => (dispatch, getState) => { fcn(event, data, dispatch, getState); },
 
     // REDUCER
@@ -186,6 +189,17 @@ const reduxifyService = (app, route, name = route, options = {}) => {
             [opts.isFinished]: false,
             [opts.data]: null,
             [opts.queryResult]: action.payload ? state[opts.queryResult] : null,
+            [opts.store]: null,
+          };
+        } },
+        
+        // update store
+        { [STORE]: (state, action) => {
+          debug(`redux:${STORE}`, action);
+          
+          return {
+            ...state,
+            [opts.store]: action.payload,
           };
         } }
       ),
@@ -196,6 +210,7 @@ const reduxifyService = (app, route, name = route, options = {}) => {
         [opts.isFinished]: false,
         [opts.data]: null,
         [opts.queryResult]: null,
+        [opts.store]: null,
       }
     ),
   };

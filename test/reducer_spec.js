@@ -35,6 +35,7 @@ describe('reduxify:reducer - array of paths', () => {
       isFinished: false,
       data: null,
       queryResult: null,
+      store: null,
     });
   });
 
@@ -73,6 +74,7 @@ describe('reduxify:reducer - array of paths', () => {
   describe('for reset', () => {
     it('resets state', () => {
       const state = services.users.reducer({}, services.users.reset());
+      
       assert.deepEqual(state, {
         isError: null,
         isLoading: false,
@@ -80,6 +82,7 @@ describe('reduxify:reducer - array of paths', () => {
         isFinished: false,
         data: null,
         queryResult: null,
+        store: null,
       });
     });
 
@@ -104,6 +107,7 @@ describe('reduxify:reducer - array of paths', () => {
         isFinished: false,
         data: null,
         queryResult: null,
+        store: null,
       });
     });
 
@@ -118,6 +122,18 @@ describe('reduxify:reducer - array of paths', () => {
         isFinished: false,
         data: null,
         queryResult: [{ a: 'a' }],
+        store: null,
+      });
+    });
+  });
+  
+  
+  describe('for store', () => {
+    it('resets state', () => {
+      const state = services.users.reducer({}, services.users.store('harry'));
+    
+      assert.deepEqual(state, {
+        store: 'harry',
       });
     });
   });
@@ -151,6 +167,7 @@ describe('reduxify:reducer - single path', () => {
       isFinished: false,
       data: null,
       queryResult: null,
+      store: null,
     });
   });
 });
@@ -183,6 +200,7 @@ describe('reduxify:reducer - path & convenience name', () => {
       isFinished: false,
       data: null,
       queryResult: null,
+      store: null,
     });
   });
 });

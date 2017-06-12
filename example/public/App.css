@@ -21,8 +21,12 @@
 }
 
 .App-status {
-  font-size: small;
+  font-size: x-small;
   border: 1px solid black;
+}
+
+.App-status .code{
+  font-size: xx-small;
 }
 
 figure {

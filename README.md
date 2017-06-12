@@ -138,19 +138,18 @@ cd path/to/feathers-reduxify-services/example
 npm start
 ```
 
-The NeDb database `data/messages.db` has 6 items in it, with text `message 1` to `message 6`.
-
 Point your browser at `localhost:3030/index.html`
 
-The client, on startup, adds a `Hello` item to `messages`, `find`'s and displays 5 items,
+The client, on startup, adds a `Hello` item to `messages`, `find`'s and displays items,
 and tries to `get` a non-existent item.
 
-You can `create`, `get` and `find` items using the UI.
+You can `create`, `get`, `patch`, `remove` and `find` items using the UI.
 
 `client/feathers/index.js` reduxifies the `users` and `messages` feathers services
 and exports their action creators and reducer as `{ services }`.
 `client/reducers/index.js` hooks up the reducers for the reduxified services.
 `client/index.js` performs the initial `create`, `find` and `get`.
+It also configures the realtime replication.
 `client/App.js::mapDispatchToProps` dispatches UI events.
 
 ## API Reference

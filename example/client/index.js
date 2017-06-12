@@ -10,7 +10,7 @@ import App from './App';
 const store = configureStore();
 
 store.dispatch(services.messages.remove(null));
-store.dispatch(services.messages.create({ text: 'auto created record' }));
+store.dispatch(services.messages.create({ text: 'hello' }));
 store.dispatch(services.messages.find());
 store.dispatch(services.messages.get('hjhjhj'));
 

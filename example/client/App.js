@@ -37,6 +37,12 @@ class App extends Component {
           <br />
           <SimpleInput placeholder="id for message" onChange={value => { id = value; }} />
           <button onClick={this.props.onGet}>Get message</button>
+          <button onClick={this.props.onRemove}>Remove message</button>
+          <br />
+          <br />
+          <SimpleInput placeholder="id for message" onChange={value => { id = value; }} />
+          <SimpleInput placeholder="new text for message" onChange={value => { text = value; }} />
+          <button onClick={this.props.onPatch}>Patch message</button>
           <br />
           <br />
           <button onClick={this.props.onFind}>Retrieve some messages</button>
@@ -66,6 +72,16 @@ class App extends Component {
               </code>
             </pre>
           </figure>
+          <br />
+          <br />
+          realtime local replica:
+          <figure>
+            <pre>
+              <code>
+                {messages.store ? JSON.stringify(messages.store, null, 2) : ''}
+              </code>
+            </pre>
+          </figure>
         </div>
       </div>
     );
@@ -83,6 +99,12 @@ const mapDispatchToProps = (dispatch) => ({
   },
   onGet: () => {
     dispatch(services.messages.get(id));
+  },
+  onPatch: () => {
+    dispatch(services.messages.patch(id, { text }));
+  },
+  onRemove: () => {
+    dispatch(services.messages.remove(id));
   },
   onFind: () => {
     dispatch(services.messages.find());

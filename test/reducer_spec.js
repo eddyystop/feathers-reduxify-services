@@ -127,7 +127,6 @@ describe('reduxify:reducer - array of paths', () => {
     });
   });
   
-  
   describe('for store', () => {
     it('resets state', () => {
       const state = services.users.reducer({}, services.users.store('harry'));

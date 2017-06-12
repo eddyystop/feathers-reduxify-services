@@ -159,7 +159,7 @@ const reduxifyService = (app, route, name = route, options = {}) => {
     patch: createAction(PATCH, (id, d, p) => ({ promise: service.patch(id, d, p) })),
     remove: createAction(REMOVE, (id, p) => ({ promise: service.remove(id, p) })),
     reset: createAction(RESET),
-    store: createAction(STORE),
+    store: createAction(STORE, store => store),
     on: (event, data, fcn) => (dispatch, getState) => { fcn(event, data, dispatch, getState); },
 
     // REDUCER

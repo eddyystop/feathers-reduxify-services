@@ -76,6 +76,19 @@ messages.on('created', data => {
 });
 ```
 
+An interface allows integration with read-only realtime replication.
+
+```javascript
+import Realtime from 'feathers-offline-realtime';
+
+const messages = feathersApp.service('/messages');
+const messagesRealtime = new Realtime(messages);
+
+messagesRealtime.on('events', (records, last) => {
+  store.dispatch(services.messages.store({ connected: messagesRealtime.connected, last, records }));
+});
+```
+
 Keep the user informed of service activity.
 
 ```javascript

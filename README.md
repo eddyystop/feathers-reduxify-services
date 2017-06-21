@@ -7,6 +7,11 @@ Wrap Feathers services so they work transparently and perfectly with Redux.
 
 > Integrate Feathers and Redux with one line of code.
 
+**This repo has been moved into FeathersJS as `feathers-redux`.
+That is backward compatible to this repo so any existing code will work as is.
+`feathers-redux` in addition supports near realtime, read-only replication
+of (portions of) the data in remote services.**
+
 ```javascript
 /* on server */
 app.use('/users', ...);
@@ -76,24 +81,46 @@ messages.on('created', data => {
 });
 ```
 
-An interface allows integration with read-only realtime replication.
+Keep the user informed of service activity.
 
 ```javascript
+const status = getServicesStatus(servicesRootState, ['users', 'messages']).message;
+```
+
+Replication engines generally maintain a near realtime, local copy of (some of) the records
+in a service on the server.
+
+`feathers-reduxify-services` now provides an interface which you can use
+to interface replication engines with the Redux state for the service.
+This interface updates the state property `store`.
+
+`feathers-offline-realtime` is the official Feathersjs realtime replication engine.
+Please read its README.
+
+It can be interfaced with `feathers-reduxify-services` as follows:
+```javascript
+import reduxifyServices from 'feathers-reduxify-services';
 import Realtime from 'feathers-offline-realtime';
 
-const messages = feathersApp.service('/messages');
-const messagesRealtime = new Realtime(messages);
+const services = reduxifyServices(app, ['messages', ...]);
+const store = applyMiddleware( ... , messages: services.messages.reducer }));
+
+const messagesRealtime = new Realtime(feathersApp.service('/messages'));
 
 messagesRealtime.on('events', (records, last) => {
   store.dispatch(services.messages.store({ connected: messagesRealtime.connected, last, records }));
 });
 ```
 
-Keep the user informed of service activity.
-
+This would create the state:
 ```javascript
-const status = getServicesStatus(servicesRootState, ['users', 'messages']).message;
+state.messages.store = {
+  connected: boolean, // if the replication engine is still listening to server
+  last: { activity, eventName, record }, // last activity. See feathers-offline-realtime
+  records: [ objects ], // the near realtime contents of the remote service
+};
 ```
+
 
 ## Motivation
 
